@@ -1,0 +1,227 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap");
+
+/* =====================================================================
+   Altiora admin — Home page editor (compact)
+   Sized for laptop screens (about 1280 × 650 css px) so most of the screen
+   is the editor itself, not the chrome around it.
+   Shell (sidebar, top bar, banner, save bar) uses Poppins like the site.
+   Editor content uses Instrument Sans / Newsreader.
+   Every class is prefixed adm- so it never clashes with the public site CSS.
+   ===================================================================== */
+
+.adm-shell {
+  --ink: #16140f;
+  --dark: #0e0e0e;
+  --dark-2: #1b1b1b;
+  --paper: #f6f6f3;
+  --surface: #ffffff;
+  --line: #e3e2db;
+  --line-strong: #cfcdc3;
+  --mute: #6b6a63;
+  --gold: #b9924a;
+  --gold-light: #d9bc7c;
+  --gold-ink: #7a5c1f;
+
+  --shell: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Newsreader", Georgia, serif;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 212px minmax(0, 1fr);
+  height: 100vh;
+  overflow: clip;           /* clip (not hidden) so anchor links can't scroll the page itself */
+  font-family: var(--shell);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+}
+.adm-shell *, .adm-shell *::before, .adm-shell *::after { box-sizing: border-box; }
+.adm-shell a { color: inherit; text-decoration: none; }
+.adm-shell h1, .adm-shell h2, .adm-shell h3, .adm-shell p, .adm-shell figure { margin: 0; }
+.adm-shell ul, .adm-shell ol { margin: 0; padding: 0; list-style: none; }
+.adm-shell :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.adm-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------------- Sidebar ---------------- */
+.adm-sidebar { display: flex; flex-direction: column; height: 100vh; background: var(--dark); border-right: 1px solid #222; color: #e9e6df; }
+.adm-brand { display: flex; align-items: center; gap: 10px; height: 60px; padding: 0 16px; flex-shrink: 0; }
+.adm-brand img { height: 32px; width: auto; }
+.adm-brand span { display: flex; flex-direction: column; line-height: 1; }
+.adm-brand strong { font-size: 0.95rem; font-weight: 700; letter-spacing: 0.18em; color: #fff; }
+.adm-brand em { margin-top: 4px; font-style: normal; font-size: 0.5rem; letter-spacing: 0.32em; color: var(--gold); }
+
+.adm-side-nav { flex: 1; overflow-y: auto; padding: 12px 10px 8px; }
+.adm-side-item { display: flex; align-items: center; gap: 12px; padding: 10px 10px; font-size: 0.9rem; color: #e9e6df; border-radius: 6px; }
+.adm-side-item svg { width: 18px; height: 18px; flex-shrink: 0; color: #bdb8ad; }
+.adm-side-item .adm-chev { width: 14px; height: 14px; margin-left: auto; margin-right: 4px; }
+.adm-side-item:hover { color: #fff; }
+
+.adm-shell .adm-side-sub { margin: 2px 0 8px 18px; padding: 0 0 0 10px; border-left: 1px solid #2c2c2c; }
+.adm-side-sub a { display: block; padding: 8px 12px; font-size: 0.85rem; color: #bdb8ad; border-radius: 6px; }
+.adm-side-sub a:hover { color: #fff; }
+.adm-side-sub a.is-active { background: var(--dark-2); color: #fff; }
+
+.adm-view-site { margin: 0 10px; padding: 12px 10px; border-top: 1px solid #262626; border-radius: 0; flex-shrink: 0; }
+
+/* ---------------- Main column ---------------- */
+.adm-main { display: flex; flex-direction: column; height: 100vh; min-width: 0; }
+
+.adm-topbar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; height: 56px; padding: 0 24px; background: var(--dark); color: #fff; }
+.adm-topbar h3 { font-size: 0.95rem; font-weight: 600; color: #fff; line-height: 1.3; }
+.adm-topbar p { margin-top: 1px; font-size: 0.75rem; color: #d6d2c8; }
+.adm-topbar-right { display: flex; align-items: center; gap: 14px; }
+.adm-email { font-size: 0.82rem; color: #cfcac0; }
+.adm-signout {
+  padding: 7px 14px; font: inherit; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #fff; background: transparent; border: 1px solid #4a4538; border-radius: 4px; cursor: pointer;
+}
+.adm-signout:hover { border-color: var(--gold); color: var(--gold-light); }
+
+.adm-scroll { flex: 1; min-height: 0; overflow: clip; }
+.adm-content { display: flex; flex-direction: column; height: 100%; padding: 20px 24px 0; }
+
+/* ---------------- Gold banner ---------------- */
+.adm-banner {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 16px 24px;
+  background: linear-gradient(100deg, #fffdf8 0%, #fbf3df 55%, #f1dfb2 100%);
+  border: 1px solid #ecdcb4; border-left: 4px solid var(--gold); border-radius: 8px;
+}
+.adm-back { font-size: 0.75rem; color: var(--gold-ink) !important; text-decoration: underline !important; }
+.adm-banner h1 { margin-top: 2px; font-size: 1.35rem; font-weight: 700; line-height: 1.2; letter-spacing: 0; color: var(--ink); }
+.adm-banner p { margin-top: 2px; font-size: 0.82rem; color: #55504a; }
+
+.adm-btn-gold {
+  display: inline-block; padding: 9px 20px; font: inherit; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; white-space: nowrap; cursor: pointer; color: #1a1408 !important; border: 0; border-radius: 4px;
+  background: linear-gradient(180deg, #d1ac62, #a98338);
+}
+.adm-btn-gold:hover { background: linear-gradient(180deg, #c19c52, #8e6e31); }
+
+/* ---------------- Save bar ---------------- */
+.adm-savebar {
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding: 8px 24px;
+  background: #fff; border-top: 1px solid var(--line);
+}
+.adm-savebar span { font-size: 0.8rem; color: #55504a; }
+
+/* ---------------- Editor: layout + outline ---------------- */
+.adm-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 20px; align-items: stretch; font-family: var(--ui); font-size: 14px; line-height: 1.45; }
+.adm-outline { align-self: start; font-family: var(--shell); }
+.adm-outline > p { margin-bottom: 6px; padding-left: 12px; font-size: 0.75rem; font-weight: 600; color: var(--mute); }
+.adm-outline a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; font-size: 0.85rem; border-left: 2px solid var(--line); color: var(--mute); transition: color 0.15s, border-color 0.15s; }
+.adm-outline a:hover { color: var(--ink); border-left-color: var(--line-strong); }
+.adm-outline a.is-active { color: var(--ink); font-weight: 500; border-left-color: var(--gold); }
+.adm-outline em { font-style: normal; font-size: 0.75rem; color: var(--mute); }
+
+/* ---------------- Editor: cards ---------------- */
+.adm-panels {
+  position: relative; display: grid; gap: 18px; align-content: start; min-width: 0; min-height: 0; height: 100%;
+  overflow-y: auto; padding: 0 8px 28px 0;
+  scroll-behavior: smooth;            /* outline links glide to their section */
+  scrollbar-width: thin; scrollbar-color: #cfcdc3 transparent;
+}
+.adm-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.adm-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 16px 20px 12px; }
+.adm-panel-head h2 { font-family: var(--shell); font-weight: 600; font-size: 1.05rem; line-height: 1.25; letter-spacing: 0; color: var(--ink); }
+.adm-panel-head p { margin-top: 2px; font-size: 0.8rem; color: var(--mute); max-width: 60ch; }
+.adm-counts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex-shrink: 0; }
+.adm-count { flex-shrink: 0; padding: 2px 10px; font-size: 0.72rem; color: var(--mute); background: var(--paper); border-radius: 999px; }
+.adm-panel-body { padding: 2px 20px 20px; }
+.adm-shell .adm-sub { margin: 20px 0 12px; padding-top: 16px; font-size: 0.85rem; font-weight: 600; color: var(--ink); border-top: 1px solid var(--line); }
+
+/* Fields */
+.adm-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.adm-field label { font-size: 0.78rem; font-weight: 500; color: #45443d; }
+.adm-field input, .adm-field textarea {
+  width: 100%; padding: 7px 10px; font: inherit; font-size: 0.875rem; color: var(--ink); background: #fff;
+  border: 1px solid var(--line-strong); border-radius: 6px; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.adm-field input { height: 36px; }
+.adm-field textarea { min-height: 56px; line-height: 1.5; resize: vertical; field-sizing: content; }
+.adm-field input:hover, .adm-field textarea:hover { border-color: #a9a79b; }
+.adm-field input:focus, .adm-field textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(185, 146, 74, 0.22); }
+.adm-field.is-gold input { border-left: 3px solid var(--gold); }
+
+.adm-stack { display: grid; gap: 12px; min-width: 0; }
+.adm-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.adm-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
+.adm-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 12px; }
+.adm-mt { margin-top: 12px; }
+
+/* Hero slides, each with its own photo */
+.adm-slides { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.adm-slide { overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.adm-slide-photo { position: relative; aspect-ratio: 16 / 9; background: var(--ink); }
+.adm-slide-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.adm-slide-photo img.pos-right { object-position: 86% center; }
+.adm-slide-photo img.pos-left { object-position: 40% center; }
+.adm-slide-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(22, 20, 15, 0.65)); }
+.adm-slide-photo span { position: absolute; left: 10px; bottom: 8px; z-index: 1; padding: 1px 10px; font-size: 0.72rem; font-weight: 600; color: var(--ink); background: var(--gold); border-radius: 999px; }
+.adm-slide-fields { display: grid; gap: 10px; padding: 12px; }
+
+/* Image controls: file name, size advice and the Change image button */
+.adm-image-meta { display: grid; gap: 2px; padding: 8px 12px 0; }
+.adm-file { font-size: 0.78rem; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.adm-hint { font-size: 0.72rem; line-height: 1.4; color: var(--mute); }
+.adm-upload {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; justify-self: start;
+  height: 30px; margin-top: 6px; padding: 0 12px; font-size: 0.78rem; font-weight: 500; color: var(--ink);
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 6px; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.adm-upload:hover { border-color: var(--gold); background: #fbf6ea; }
+.adm-upload:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
+.adm-upload input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.adm-item-media .adm-image-meta, .adm-figure .adm-image-meta, .adm-image-row .adm-image-meta { padding: 8px 0 0; }
+.adm-image-row { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.adm-image-row > img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; display: block; }
+.adm-slide .adm-image-meta { padding-bottom: 0; }
+
+/* Value strip rows */
+.adm-rows { display: grid; gap: 8px; }
+.adm-row-values { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(0, 2fr); gap: 10px; align-items: center; }
+.adm-chip { display: grid; place-items: center; width: 34px; height: 34px; color: var(--gold-ink); background: #f3ecdc; border-radius: 8px; }
+.adm-chip svg { width: 18px; height: 18px; }
+
+/* About */
+.adm-split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.adm-figure { position: sticky; top: 0; }
+.adm-figure img { width: 100%; aspect-ratio: 4 / 3.2; object-fit: cover; border-radius: 8px; display: block; }
+
+/* Services */
+.adm-items { display: grid; gap: 10px; }
+.adm-item { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 14px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.adm-item-media img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; display: block; }
+
+/* Approach steps */
+.adm-steps { display: grid; gap: 10px; }
+.adm-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; }
+.adm-step-no { display: grid; place-items: center; width: 28px; height: 28px; margin-top: 20px; font-size: 0.8rem; font-weight: 600; color: var(--gold-ink); border: 1.5px solid var(--gold); border-radius: 50%; }
+
+/* ---------------- Responsive ---------------- */
+@media (max-width: 1100px) {
+  .adm-layout { grid-template-columns: minmax(0, 1fr); }
+  .adm-outline { display: none; }
+}
+@media (max-width: 860px) {
+  .adm-shell { grid-template-columns: minmax(0, 1fr); }
+  .adm-sidebar { display: none; }   /* mobile menu comes later, once state is allowed */
+  .adm-topbar, .adm-savebar { padding-left: 14px; padding-right: 14px; }
+  .adm-email { display: none; }
+  .adm-content { padding: 14px; }
+  .adm-banner { padding: 14px 16px; }
+  .adm-grid-2, .adm-grid-3, .adm-pair, .adm-split, .adm-row-values, .adm-item, .adm-image-row { grid-template-columns: minmax(0, 1fr); }
+  .adm-item-media img { height: 140px; }
+  .adm-chip { display: none; }
+  .adm-step-no { margin-top: 0; }
+  .adm-steps li { grid-template-columns: minmax(0, 1fr); }
+  .adm-panel-head, .adm-panel-body { padding-left: 14px; padding-right: 14px; }
+  .adm-figure { position: static; }
+  .adm-savebar span { display: none; }
+  .adm-savebar { justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .adm-shell * { transition: none !important; }
+  .adm-panels { scroll-behavior: auto; }
+}
