@@ -92,7 +92,7 @@
 .adm-banner p { margin-top: 2px; font-size: 0.82rem; color: #55504a; }
 
 .adm-btn-gold {
-  display: inline-block; padding: 9px 20px; font: inherit; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 20px; font: inherit; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em;
   text-transform: uppercase; white-space: nowrap; cursor: pointer; color: #1a1408 !important; border: 0; border-radius: 4px;
   background: linear-gradient(180deg, #d1ac62, #a98338);
 }
@@ -100,10 +100,215 @@
 
 /* ---------------- Save bar ---------------- */
 .adm-savebar {
-  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding: 8px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0; padding: 10px 24px;
   background: #fff; border-top: 1px solid var(--line);
 }
-.adm-savebar span { font-size: 0.8rem; color: #55504a; }
+.adm-savebar .adm-btn-gold:disabled { cursor: wait; opacity: 0.85; }
+
+/* Spinner */
+.adm-spinner {
+  width: 15px;
+  height: 15px;
+  animation: admSpin 0.75s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.adm-spinner-track {
+  opacity: 0.25;
+}
+.adm-spinner-head {
+  opacity: 0.95;
+}
+.adm-btn-spinner {
+  width: 14px;
+  height: 14px;
+}
+@keyframes admSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.adm-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  line-height: 1.3;
+  max-width: 70%;
+}
+.adm-save-status svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.adm-save-status.is-idle {
+  color: #63615a;
+  background: transparent;
+}
+.adm-save-status.is-unsaved {
+  color: #925c08;
+  background: #fffdf5;
+  border: 1px solid #f6e2b5;
+  font-weight: 500;
+}
+.adm-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #d97706;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.adm-save-status.is-saving {
+  color: #855909;
+  background: #fdf5e6;
+  border: 1px solid #fae1b3;
+}
+.adm-save-status.is-success {
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  font-weight: 600;
+}
+.adm-save-status.is-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  font-weight: 600;
+}
+
+/* ---------------- Top Alert Card (Saved / Error) ---------------- */
+.adm-alert-card {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  animation: admAlertSlide 0.22s ease-out;
+}
+
+@keyframes admAlertSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.adm-alert-card.is-success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-left: 5px solid #16a34a;
+}
+
+.adm-alert-card.is-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-left: 5px solid #dc2626;
+}
+
+.adm-alert-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-top: 1px;
+}
+
+.adm-alert-card.is-success .adm-alert-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.adm-alert-card.is-error .adm-alert-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.adm-alert-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.adm-alert-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.adm-alert-title {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.adm-alert-card.is-success .adm-alert-title {
+  color: #15803d;
+}
+
+.adm-alert-card.is-error .adm-alert-title {
+  color: #b91c1c;
+}
+
+.adm-alert-desc {
+  margin-top: 3px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.adm-alert-card.is-success .adm-alert-desc {
+  color: #166534;
+}
+
+.adm-alert-card.is-error .adm-alert-desc {
+  color: #991b1b;
+}
+
+.adm-alert-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #71717a;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.adm-alert-card.is-success .adm-alert-close:hover {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.adm-alert-card.is-error .adm-alert-close:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.adm-alert-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Shown while the editor loads its text (before the dashboard layout appears) */
+.adm-loading { margin: 0; padding: 40px 24px; font-family: "Poppins", sans-serif; font-size: 0.95rem; color: #6b6a63; }
 
 /* ---------------- Editor: layout + outline ---------------- */
 .adm-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 20px; align-items: stretch; font-family: var(--ui); font-size: 14px; line-height: 1.45; }
@@ -111,7 +316,7 @@
 .adm-outline > p { margin-bottom: 6px; padding-left: 12px; font-size: 0.75rem; font-weight: 600; color: var(--mute); }
 .adm-outline a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; font-size: 0.85rem; border-left: 2px solid var(--line); color: var(--mute); transition: color 0.15s, border-color 0.15s; }
 .adm-outline a:hover { color: var(--ink); border-left-color: var(--line-strong); }
-.adm-outline a.is-active { color: var(--ink); font-weight: 500; border-left-color: var(--gold); }
+.adm-outline a.is-active { color: var(--ink); font-weight: 700; border-left-color: var(--gold); }
 .adm-outline em { font-style: normal; font-size: 0.75rem; color: var(--mute); }
 
 /* ---------------- Editor: cards ---------------- */
@@ -218,8 +423,8 @@
   .adm-steps li { grid-template-columns: minmax(0, 1fr); }
   .adm-panel-head, .adm-panel-body { padding-left: 14px; padding-right: 14px; }
   .adm-figure { position: static; }
-  .adm-savebar span { display: none; }
-  .adm-savebar { justify-content: flex-end; }
+  .adm-savebar { flex-wrap: wrap; gap: 8px; }
+  .adm-save-status { max-width: 100%; font-size: 0.78rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .adm-shell * { transition: none !important; }

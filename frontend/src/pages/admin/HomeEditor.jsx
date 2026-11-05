@@ -1,13 +1,178 @@
-// Admin → Home page editor. Fully static: no hooks, no .map(), no helper functions.
-// Inputs use defaultValue (they show the current wording but do not save anything yet).
+// Admin → Home page editor.
+// Every section is live: the text and images load from the backend,
+// change as the admin types, and are all saved together with "Save changes".
+import { useEffect, useState } from "react";
 import "../../styles/admin.css";
+import api from "../../api/api";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import AdminPageBanner from "../../components/admin/AdminPageBanner";
 import AdminOutline from "../../components/admin/AdminOutline";
 import AdminSaveBar from "../../components/admin/AdminSaveBar";
+import AdminAlertCard from "../../components/admin/AdminAlertCard";
+import AdminField from "../../components/admin/AdminField";
+import AdminImageMeta from "../../components/admin/AdminImageMeta";
+
+// Small icons shown next to the five Value strip rows (they cannot be edited)
+const valueChips = [
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 8a3 3 0 1 0 0 .01M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" /></svg>,
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" /></svg>,
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM9 14 7.5 21 12 18.5 16.5 21 15 14" /></svg>,
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M8 12.5 6 11a2.4 2.4 0 0 0-3 3.7l5 4.8 5-4.8m-3-2.2 1.8-1.7a2.4 2.4 0 0 1 3.4 3.4L14 17.5" /></svg>,
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3.5 18.5 9 12l4 3 7.5-8.5M15.5 6.5h5v5" /></svg>,
+];
 
 const HomeEditor = () => {
+  const [page, setPage] = useState(null); // all sections of the Home page, as the admin is typing
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [isError, setIsError] = useState(false); // true when statusMessage is an error
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(null); // which image is uploading, for example "about" or "hero-1"
+
+  // When the page opens, load the saved text
+  useEffect(() => {
+    const loadHome = async () => {
+      try {
+        const response = await api.get("/pages/home");
+        setPage(response.data);
+      } catch (error) {
+        setIsError(true);
+        setStatusMessage("Could not load the text. Please refresh the page.");
+      }
+    };
+    loadHome();
+  }, []);
+
+  // Auto-dismiss the success message after 5 seconds so it doesn't linger forever
+  useEffect(() => {
+    if (statusMessage && !isError) {
+      const timer = setTimeout(() => {
+        setStatusMessage("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [statusMessage, isError]);
+
+  // Every change below goes through this: it updates the page and marks it as "not saved yet"
+  const updatePage = (makeNewPage) => {
+    setPage(makeNewPage);
+    setHasUnsavedChanges(true);
+    if (statusMessage === "Saved") {
+      setStatusMessage("");
+    }
+  };
+
+  // Change one field of a section, for example ("about", "heading", "New heading")
+  const changeSectionField = (sectionName, fieldName, newValue) => {
+    updatePage((currentPage) => ({
+      ...currentPage,
+      [sectionName]: { ...currentPage[sectionName], [fieldName]: newValue },
+    }));
+  };
+
+  // Change one field of one item in a list, for example ("services", "cards", 2, "title", "New title")
+  const changeListItem = (sectionName, listName, itemIndex, fieldName, newValue) => {
+    updatePage((currentPage) => {
+      const section = currentPage[sectionName];
+      const newList = section[listName].map((item, index) =>
+        index === itemIndex ? { ...item, [fieldName]: newValue } : item
+      );
+      return { ...currentPage, [sectionName]: { ...section, [listName]: newList } };
+    });
+  };
+
+  // The Hero editor uses these two short names
+  const changeSlideField = (slideIndex, fieldName, newValue) => {
+    changeListItem("hero", "slides", slideIndex, fieldName, newValue);
+  };
+
+  const changeButtonText = (buttonName, newValue) => {
+    changeSectionField("hero", buttonName, newValue);
+  };
+
+  // Upload the chosen file, then give the new image URL to saveUrl.
+  // uploadId says which image is uploading, so only that button shows "Uploading...".
+  const uploadImage = async (uploadId, saveUrl, event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(uploadId);
+    setIsError(false);
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      saveUrl(response.data.imageUrl);
+    } catch (error) {
+      setIsError(true);
+      setStatusMessage(error.response?.data?.message || "Could not upload image. Please try again.");
+    } finally {
+      setUploadingImage(null);
+      // Reset the file input so the admin can re-select the same image if needed
+      event.target.value = "";
+    }
+  };
+
+  // One image for a whole section (About, Approach, Training, Closing banner)
+  const uploadSectionImage = (sectionName, event) => {
+    uploadImage(sectionName, (url) => changeSectionField(sectionName, "image", url), event);
+  };
+
+  // The image of one Services card
+  const uploadCardImage = (cardIndex, event) => {
+    uploadImage(`card-${cardIndex}`, (url) => changeListItem("services", "cards", cardIndex, "image", url), event);
+  };
+
+  // The image of one Hero slide
+  const uploadSlideImage = (slideIndex, event) => {
+    uploadImage(`hero-${slideIndex}`, (url) => changeSlideField(slideIndex, "image", url), event);
+  };
+
+  // Save changes: send all the sections to the backend
+  const saveHome = async () => {
+    setIsSaving(true);
+    setIsError(false);
+    setStatusMessage("");
+
+    const startTime = Date.now();
+    try {
+      await api.put("/pages/home", page);
+
+      // Guarantee a minimum loading duration (700ms) so the spinner animation
+      // is smooth and visible, preventing the jarring split-second flash
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 700) {
+        await new Promise((resolve) => setTimeout(resolve, 700 - elapsed));
+      }
+
+      setHasUnsavedChanges(false);
+      setStatusMessage("Saved");
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 500) {
+        await new Promise((resolve) => setTimeout(resolve, 500 - elapsed));
+      }
+
+      // The save failed: keep what the admin typed, so nothing is lost, and show the reason
+      setIsError(true);
+      setStatusMessage(error.response?.data?.message || "Cannot reach the server. Your changes were not saved.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!page) {
+    return <p className="adm-loading">{statusMessage || "Loading the text..."}</p>;
+  }
+
+  // One short name for each section
+  const { hero, valueStrip, about, services, why, approach, training, cta } = page;
+
   return (
     <div className="adm-shell">
       <AdminSidebar />
@@ -17,6 +182,12 @@ const HomeEditor = () => {
 
         <div className="adm-scroll">
           <div className="adm-content">
+            <AdminAlertCard
+              message={statusMessage}
+              isError={isError}
+              onClose={() => setStatusMessage("")}
+            />
+
             <AdminPageBanner />
 
             <div className="adm-layout">
@@ -38,97 +209,115 @@ const HomeEditor = () => {
                     <div className="adm-slides">
                       <div className="adm-slide">
                         <div className="adm-slide-photo">
-                          <img src="/assets/images/photo-team-meeting.jpg" alt="" />
+                          <img src={hero.slides[0].image} alt="Slide 1" />
                           <span>Slide 1</span>
                         </div>
                         <div className="adm-image-meta">
-                          <p className="adm-file">photo-team-meeting.jpg</p>
+                          <p className="adm-file">{hero.slides[0].image?.split("/").pop()}</p>
                           <p className="adm-hint">Landscape, at least 1600 × 1067 px. Keep faces near the centre because the edges are cropped. JPG, PNG or WebP.</p>
                           <label className="adm-upload">
-                            <input type="file" accept="image/jpeg,image/png,image/webp" />
-                            <span>Change image</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={uploadingImage === "hero-0"}
+                              onChange={(event) => uploadSlideImage(0, event)}
+                            />
+                            <span>{uploadingImage === "hero-0" ? "Uploading..." : "Change image"}</span>
                           </label>
+                          <p className="adm-hint">Max file size: 5 MB</p>
                         </div>
                         <div className="adm-slide-fields">
                           <div className="adm-field">
                             <label htmlFor="f1">Slide 1: small heading</label>
-                            <input id="f1" type="text" defaultValue={"Altiora Business Advisory"} />
+                            <input id="f1" type="text" value={hero.slides[0].smallHeading} onChange={(event) => changeSlideField(0, "smallHeading", event.target.value)} />
                           </div>
                           <div className="adm-field">
                             <label htmlFor="f2">Slide 1: heading line 1</label>
-                            <input id="f2" type="text" defaultValue={"Elevating Potential."} />
+                            <input id="f2" type="text" value={hero.slides[0].headingLine1} onChange={(event) => changeSlideField(0, "headingLine1", event.target.value)} />
                           </div>
                           <div className="adm-field is-gold">
                             <label htmlFor="f3">Slide 1: heading line 2 (gold)</label>
-                            <input id="f3" type="text" defaultValue={"Delivering Excellence."} />
+                            <input id="f3" type="text" value={hero.slides[0].headingLine2} onChange={(event) => changeSlideField(0, "headingLine2", event.target.value)} />
                           </div>
                           <div className="adm-field">
                             <label htmlFor="f4">Slide 1: text</label>
-                            <textarea id="f4" rows="3" defaultValue={"At Altiora Business Advisory, we believe that meaningful growth begins with the right knowledge, skills, and direction."}></textarea>
+                            <textarea id="f4" rows="3" value={hero.slides[0].text} onChange={(event) => changeSlideField(0, "text", event.target.value)}></textarea>
                           </div>
                         </div>
                       </div>
                       <div className="adm-slide">
                         <div className="adm-slide-photo">
-                          <img src="/assets/images/photo-training-session.jpg" alt="" className="pos-right" />
+                          <img src={hero.slides[1].image} alt="Slide 2" className="pos-right" />
                           <span>Slide 2</span>
                         </div>
                         <div className="adm-image-meta">
-                          <p className="adm-file">photo-training-session.jpg</p>
+                          <p className="adm-file">{hero.slides[1].image?.split("/").pop()}</p>
                           <p className="adm-hint">Landscape, at least 1600 × 1067 px. Keep faces near the centre because the edges are cropped. JPG, PNG or WebP.</p>
                           <label className="adm-upload">
-                            <input type="file" accept="image/jpeg,image/png,image/webp" />
-                            <span>Change image</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={uploadingImage === "hero-1"}
+                              onChange={(event) => uploadSlideImage(1, event)}
+                            />
+                            <span>{uploadingImage === "hero-1" ? "Uploading..." : "Change image"}</span>
                           </label>
+                          <p className="adm-hint">Max file size: 5 MB</p>
                         </div>
                         <div className="adm-slide-fields">
                           <div className="adm-field">
                             <label htmlFor="f5">Slide 2: small heading</label>
-                            <input id="f5" type="text" defaultValue={"Practical Learning"} />
+                            <input id="f5" type="text" value={hero.slides[1].smallHeading} onChange={(event) => changeSlideField(1, "smallHeading", event.target.value)} />
                           </div>
                           <div className="adm-field">
                             <label htmlFor="f6">Slide 2: heading line 1</label>
-                            <input id="f6" type="text" defaultValue={"Training That"} />
+                            <input id="f6" type="text" value={hero.slides[1].headingLine1} onChange={(event) => changeSlideField(1, "headingLine1", event.target.value)} />
                           </div>
                           <div className="adm-field is-gold">
                             <label htmlFor="f7">Slide 2: heading line 2 (gold)</label>
-                            <input id="f7" type="text" defaultValue={"Creates Real Impact."} />
+                            <input id="f7" type="text" value={hero.slides[1].headingLine2} onChange={(event) => changeSlideField(1, "headingLine2", event.target.value)} />
                           </div>
                           <div className="adm-field">
                             <label htmlFor="f8">Slide 2: text</label>
-                            <textarea id="f8" rows="3" defaultValue={"Hands-on programs designed to build skills your teams can put to work from day one."}></textarea>
+                            <textarea id="f8" rows="3" value={hero.slides[1].text} onChange={(event) => changeSlideField(1, "text", event.target.value)}></textarea>
                           </div>
                         </div>
                       </div>
                       <div className="adm-slide">
                         <div className="adm-slide-photo">
-                          <img src="/assets/images/photo-advisory-discussion.jpg" alt="" className="pos-left" />
+                          <img src={hero.slides[2].image} alt="Slide 3" className="pos-left" />
                           <span>Slide 3</span>
                         </div>
                         <div className="adm-image-meta">
-                          <p className="adm-file">photo-advisory-discussion.jpg</p>
+                          <p className="adm-file">{hero.slides[2].image?.split("/").pop()}</p>
                           <p className="adm-hint">Landscape, at least 1600 × 1067 px. Keep faces near the centre because the edges are cropped. JPG, PNG or WebP.</p>
                           <label className="adm-upload">
-                            <input type="file" accept="image/jpeg,image/png,image/webp" />
-                            <span>Change image</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={uploadingImage === "hero-2"}
+                              onChange={(event) => uploadSlideImage(2, event)}
+                            />
+                            <span>{uploadingImage === "hero-2" ? "Uploading..." : "Change image"}</span>
                           </label>
+                          <p className="adm-hint">Max file size: 5 MB</p>
                         </div>
                         <div className="adm-slide-fields">
                           <div className="adm-field">
                             <label htmlFor="f9">Slide 3: small heading</label>
-                            <input id="f9" type="text" defaultValue={"Trusted Partnership"} />
+                            <input id="f9" type="text" value={hero.slides[2].smallHeading} onChange={(event) => changeSlideField(2, "smallHeading", event.target.value)} />
                           </div>
                           <div className="adm-field">
                             <label htmlFor="f10">Slide 3: heading line 1</label>
-                            <input id="f10" type="text" defaultValue={"Advisory Built On"} />
+                            <input id="f10" type="text" value={hero.slides[2].headingLine1} onChange={(event) => changeSlideField(2, "headingLine1", event.target.value)} />
                           </div>
                           <div className="adm-field is-gold">
                             <label htmlFor="f11">Slide 3: heading line 2 (gold)</label>
-                            <input id="f11" type="text" defaultValue={"Lasting Relationships."} />
+                            <input id="f11" type="text" value={hero.slides[2].headingLine2} onChange={(event) => changeSlideField(2, "headingLine2", event.target.value)} />
                           </div>
                           <div className="adm-field">
                             <label htmlFor="f12">Slide 3: text</label>
-                            <textarea id="f12" rows="3" defaultValue={"We work alongside your organization for the long term — not just for a single engagement."}></textarea>
+                            <textarea id="f12" rows="3" value={hero.slides[2].text} onChange={(event) => changeSlideField(2, "text", event.target.value)}></textarea>
                           </div>
                         </div>
                       </div>
@@ -137,11 +326,11 @@ const HomeEditor = () => {
                     <div className="adm-grid-2">
                       <div className="adm-field">
                         <label htmlFor="f13">Primary button</label>
-                        <input id="f13" type="text" defaultValue={"Explore Our Services"} />
+                        <input id="f13" type="text" value={hero.primaryButton} onChange={(event) => changeButtonText("primaryButton", event.target.value)} />
                       </div>
                       <div className="adm-field">
                         <label htmlFor="f14">Secondary button</label>
-                        <input id="f14" type="text" defaultValue={"Talk to Our Team"} />
+                        <input id="f14" type="text" value={hero.secondaryButton} onChange={(event) => changeButtonText("secondaryButton", event.target.value)} />
                       </div>
                     </div>
                   </div>
@@ -159,61 +348,23 @@ const HomeEditor = () => {
                   </header>
                   <div className="adm-panel-body">
                     <div className="adm-rows">
-                      <div className="adm-row adm-row-values">
-                        <span className="adm-chip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 8a3 3 0 1 0 0 .01M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" /></svg></span>
-                        <div className="adm-field">
-                          <label htmlFor="f15" className="adm-sr">Item 1: title</label>
-                          <input id="f15" type="text" defaultValue={"People Focussed"} />
+                      {valueStrip.items.map((item, index) => (
+                        <div className="adm-row adm-row-values" key={index}>
+                          <span className="adm-chip" aria-hidden="true">{valueChips[index]}</span>
+                          <AdminField
+                            label={`Item ${index + 1}: title`}
+                            hideLabel
+                            value={item.title}
+                            onChange={(value) => changeListItem("valueStrip", "items", index, "title", value)}
+                          />
+                          <AdminField
+                            label={`Item ${index + 1}: text`}
+                            hideLabel
+                            value={item.text}
+                            onChange={(value) => changeListItem("valueStrip", "items", index, "text", value)}
+                          />
                         </div>
-                        <div className="adm-field">
-                          <label htmlFor="f16" className="adm-sr">Item 1: text</label>
-                          <input id="f16" type="text" defaultValue={"Developing talent and strengthening capabilities."} />
-                        </div>
-                      </div>
-                      <div className="adm-row adm-row-values">
-                        <span className="adm-chip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" /></svg></span>
-                        <div className="adm-field">
-                          <label htmlFor="f17" className="adm-sr">Item 2: title</label>
-                          <input id="f17" type="text" defaultValue={"Custom Solutions"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f18" className="adm-sr">Item 2: text</label>
-                          <input id="f18" type="text" defaultValue={"Tailored programs aligned to your business goals."} />
-                        </div>
-                      </div>
-                      <div className="adm-row adm-row-values">
-                        <span className="adm-chip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM9 14 7.5 21 12 18.5 16.5 21 15 14" /></svg></span>
-                        <div className="adm-field">
-                          <label htmlFor="f19" className="adm-sr">Item 3: title</label>
-                          <input id="f19" type="text" defaultValue={"Practical & Impactful"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f20" className="adm-sr">Item 3: text</label>
-                          <input id="f20" type="text" defaultValue={"Real-world learning for measurable results."} />
-                        </div>
-                      </div>
-                      <div className="adm-row adm-row-values">
-                        <span className="adm-chip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M8 12.5 6 11a2.4 2.4 0 0 0-3 3.7l5 4.8 5-4.8m-3-2.2 1.8-1.7a2.4 2.4 0 0 1 3.4 3.4L14 17.5" /></svg></span>
-                        <div className="adm-field">
-                          <label htmlFor="f21" className="adm-sr">Item 4: title</label>
-                          <input id="f21" type="text" defaultValue={"Trust & Partnership"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f22" className="adm-sr">Item 4: text</label>
-                          <input id="f22" type="text" defaultValue={"Building long-term relationships you can rely on."} />
-                        </div>
-                      </div>
-                      <div className="adm-row adm-row-values">
-                        <span className="adm-chip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3.5 18.5 9 12l4 3 7.5-8.5M15.5 6.5h5v5" /></svg></span>
-                        <div className="adm-field">
-                          <label htmlFor="f23" className="adm-sr">Item 5: title</label>
-                          <input id="f23" type="text" defaultValue={"Driving Growth"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f24" className="adm-sr">Item 5: text</label>
-                          <input id="f24" type="text" defaultValue={"Empowering organizations to achieve excellence."} />
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </article>
@@ -232,37 +383,20 @@ const HomeEditor = () => {
                   <div className="adm-panel-body">
                     <div className="adm-split">
                       <div className="adm-stack">
-                        <div className="adm-field">
-                          <label htmlFor="f25">Small heading</label>
-                          <input id="f25" type="text" defaultValue={"Who We Are"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f26">Heading</label>
-                          <input id="f26" type="text" defaultValue={"About Altiora"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f27">Intro text</label>
-                          <textarea id="f27" rows="3" defaultValue={"We provide tailored learning and development solutions, professional development programs, organizational capability support, and career guidance designed to help individuals and organizations grow, perform, and succeed."}></textarea>
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f28">Second paragraph</label>
-                          <textarea id="f28" rows="3" defaultValue={"From strengthening workforce capabilities to supporting individual career journeys, our approach is focused on creating meaningful learning experiences that translate into real-world value."}></textarea>
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f29">Button</label>
-                          <input id="f29" type="text" defaultValue={"More About Us"} />
-                        </div>
+                        <AdminField label="Small heading" value={about.smallHeading} onChange={(value) => changeSectionField("about", "smallHeading", value)} />
+                        <AdminField label="Heading" value={about.heading} onChange={(value) => changeSectionField("about", "heading", value)} />
+                        <AdminField label="Intro text" rows="3" value={about.intro} onChange={(value) => changeSectionField("about", "intro", value)} />
+                        <AdminField label="Second paragraph" rows="3" value={about.secondParagraph} onChange={(value) => changeSectionField("about", "secondParagraph", value)} />
+                        <AdminField label="Button" value={about.button} onChange={(value) => changeSectionField("about", "button", value)} />
                       </div>
                       <figure className="adm-figure">
-                        <img src="/assets/images/photo-team-whiteboard.jpg" alt="" />
-                        <div className="adm-image-meta">
-                          <p className="adm-file">photo-team-whiteboard.jpg</p>
-                          <p className="adm-hint">Landscape, at least 1600 × 1067 px (3:2). JPG, PNG or WebP.</p>
-                          <label className="adm-upload">
-                            <input type="file" accept="image/jpeg,image/png,image/webp" />
-                            <span>Change image</span>
-                          </label>
-                        </div>
+                        <img src={about.image} alt="" />
+                        <AdminImageMeta
+                          imageUrl={about.image}
+                          hint="Landscape, at least 1600 × 1067 px (3:2). JPG, PNG or WebP."
+                          isUploading={uploadingImage === "about"}
+                          onPick={(event) => uploadSectionImage("about", event)}
+                        />
                       </figure>
                     </div>
                   </div>
@@ -281,149 +415,36 @@ const HomeEditor = () => {
                   </header>
                   <div className="adm-panel-body">
                     <div className="adm-grid-2">
-                      <div className="adm-field">
-                        <label htmlFor="f30">Small heading</label>
-                        <input id="f30" type="text" defaultValue={"What We Do"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f31">Heading</label>
-                        <textarea id="f31" rows="2" defaultValue={"Solutions Designed to Develop People and Strengthen Performance"}></textarea>
-                      </div>
+                      <AdminField label="Small heading" value={services.smallHeading} onChange={(value) => changeSectionField("services", "smallHeading", value)} />
+                      <AdminField label="Heading" rows="2" value={services.heading} onChange={(value) => changeSectionField("services", "heading", value)} />
                     </div>
                     <div className="adm-stack adm-mt">
-                      <div className="adm-field">
-                        <label htmlFor="f32">Text under heading</label>
-                        <textarea id="f32" rows="2" defaultValue={"At Altiora, we turn development needs into focused, practical solutions."}></textarea>
-                      </div>
+                      <AdminField label="Text under heading" rows="2" value={services.text} onChange={(value) => changeSectionField("services", "text", value)} />
                     </div>
                     <h3 className="adm-sub">Service cards</h3>
                     <div className="adm-items">
-                      <div className="adm-item">
-                        <div className="adm-item-media">
-                          <img src="/assets/images/service-corporate-training.webp" alt="" />
-                          <div className="adm-image-meta">
-                            <p className="adm-file">service-corporate-training.webp</p>
-                            <p className="adm-hint">Landscape, at least 1200 × 900 px (4:3). JPG, PNG or WebP.</p>
-                            <label className="adm-upload">
-                              <input type="file" accept="image/jpeg,image/png,image/webp" />
-                              <span>Change image</span>
-                            </label>
+                      {services.cards.map((card, index) => (
+                        <div className="adm-item" key={index}>
+                          <div className="adm-item-media">
+                            <img src={card.image} alt="" />
+                            <AdminImageMeta
+                              imageUrl={card.image}
+                              hint="Landscape, at least 1200 × 900 px (4:3). JPG, PNG or WebP."
+                              isUploading={uploadingImage === `card-${index}`}
+                              onPick={(event) => uploadCardImage(index, event)}
+                            />
+                          </div>
+                          <div className="adm-stack">
+                            <AdminField label={`Service ${index + 1}: title`} value={card.title} onChange={(value) => changeListItem("services", "cards", index, "title", value)} />
+                            <AdminField label={`Service ${index + 1}: text`} rows="3" value={card.text} onChange={(value) => changeListItem("services", "cards", index, "text", value)} />
                           </div>
                         </div>
-                        <div className="adm-stack">
-                          <div className="adm-field">
-                            <label htmlFor="f33">Service 1: title</label>
-                            <input id="f33" type="text" defaultValue={"Corporate Training & Learning and Development"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f34">Service 1: text</label>
-                            <textarea id="f34" rows="3" defaultValue={"We support organizations in developing the capabilities required for stronger individual, team, and business performance through relevant and practical learning interventions."}></textarea>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="adm-item">
-                        <div className="adm-item-media">
-                          <img src="/assets/images/service-customized-training.webp" alt="" />
-                          <div className="adm-image-meta">
-                            <p className="adm-file">service-customized-training.webp</p>
-                            <p className="adm-hint">Landscape, at least 1200 × 900 px (4:3). JPG, PNG or WebP.</p>
-                            <label className="adm-upload">
-                              <input type="file" accept="image/jpeg,image/png,image/webp" />
-                              <span>Change image</span>
-                            </label>
-                          </div>
-                        </div>
-                        <div className="adm-stack">
-                          <div className="adm-field">
-                            <label htmlFor="f35">Service 2: title</label>
-                            <input id="f35" type="text" defaultValue={"Customized Training Solutions"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f36">Service 2: text</label>
-                            <textarea id="f36" rows="3" defaultValue={"Every organization has unique development requirements. We work with clients to understand their objectives, target audience, and expected outcomes before developing or recommending an appropriate learning solution."}></textarea>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="adm-item">
-                        <div className="adm-item-media">
-                          <img src="/assets/images/service-professional-development.webp" alt="" />
-                          <div className="adm-image-meta">
-                            <p className="adm-file">service-professional-development.webp</p>
-                            <p className="adm-hint">Landscape, at least 1200 × 900 px (4:3). JPG, PNG or WebP.</p>
-                            <label className="adm-upload">
-                              <input type="file" accept="image/jpeg,image/png,image/webp" />
-                              <span>Change image</span>
-                            </label>
-                          </div>
-                        </div>
-                        <div className="adm-stack">
-                          <div className="adm-field">
-                            <label htmlFor="f37">Service 3: title</label>
-                            <input id="f37" type="text" defaultValue={"Professional Development"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f38">Service 3: text</label>
-                            <textarea id="f38" rows="3" defaultValue={"We support professionals in strengthening the knowledge, skills, and capabilities required to progress in today’s evolving workplace."}></textarea>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="adm-item">
-                        <div className="adm-item-media">
-                          <img src="/assets/images/service-organizational-capability.webp" alt="" />
-                          <div className="adm-image-meta">
-                            <p className="adm-file">service-organizational-capability.webp</p>
-                            <p className="adm-hint">Landscape, at least 1200 × 900 px (4:3). JPG, PNG or WebP.</p>
-                            <label className="adm-upload">
-                              <input type="file" accept="image/jpeg,image/png,image/webp" />
-                              <span>Change image</span>
-                            </label>
-                          </div>
-                        </div>
-                        <div className="adm-stack">
-                          <div className="adm-field">
-                            <label htmlFor="f39">Service 4: title</label>
-                            <input id="f39" type="text" defaultValue={"Organizational Capability Development"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f40">Service 4: text</label>
-                            <textarea id="f40" rows="3" defaultValue={"We help organizations identify development priorities and capability gaps, and translate them into focused learning and development actions that support workforce performance."}></textarea>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="adm-item">
-                        <div className="adm-item-media">
-                          <img src="/assets/images/service-career-guidance.webp" alt="" />
-                          <div className="adm-image-meta">
-                            <p className="adm-file">service-career-guidance.webp</p>
-                            <p className="adm-hint">Landscape, at least 1200 × 900 px (4:3). JPG, PNG or WebP.</p>
-                            <label className="adm-upload">
-                              <input type="file" accept="image/jpeg,image/png,image/webp" />
-                              <span>Change image</span>
-                            </label>
-                          </div>
-                        </div>
-                        <div className="adm-stack">
-                          <div className="adm-field">
-                            <label htmlFor="f41">Service 5: title</label>
-                            <input id="f41" type="text" defaultValue={"Career Guidance & Development"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f42">Service 5: text</label>
-                            <textarea id="f42" rows="3" defaultValue={"We provide career development support for professionals, graduates, and emerging talent through career planning, CV and profile development, interview preparation, and professional development guidance."}></textarea>
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                     <h3 className="adm-sub">Links</h3>
                     <div className="adm-grid-2">
-                      <div className="adm-field">
-                        <label htmlFor="f43">Card link label</label>
-                        <input id="f43" type="text" defaultValue={"Learn More"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f44">View all button</label>
-                        <input id="f44" type="text" defaultValue={"View All Services"} />
-                      </div>
+                      <AdminField label="Card link label" value={services.cardLinkLabel} onChange={(value) => changeSectionField("services", "cardLinkLabel", value)} />
+                      <AdminField label="View all button" value={services.viewAllButton} onChange={(value) => changeSectionField("services", "viewAllButton", value)} />
                     </div>
                   </div>
                 </article>
@@ -440,65 +461,19 @@ const HomeEditor = () => {
                   </header>
                   <div className="adm-panel-body">
                     <div className="adm-stack">
-                      <div className="adm-field">
-                        <label htmlFor="f45">Small heading</label>
-                        <input id="f45" type="text" defaultValue={"Why Altiora"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f46">Heading</label>
-                        <input id="f46" type="text" defaultValue={"Development with purpose"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f47">Text</label>
-                        <textarea id="f47" rows="3" defaultValue={"We go beyond conventional training by delivering practical, relevant, and engaging development experiences designed to strengthen capabilities and create meaningful workplace impact."}></textarea>
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f48">Button</label>
-                        <input id="f48" type="text" defaultValue={"Discover Why Altiora"} />
-                      </div>
+                      <AdminField label="Small heading" value={why.smallHeading} onChange={(value) => changeSectionField("why", "smallHeading", value)} />
+                      <AdminField label="Heading" value={why.heading} onChange={(value) => changeSectionField("why", "heading", value)} />
+                      <AdminField label="Text" rows="3" value={why.text} onChange={(value) => changeSectionField("why", "text", value)} />
+                      <AdminField label="Button" value={why.button} onChange={(value) => changeSectionField("why", "button", value)} />
                     </div>
                     <h3 className="adm-sub">Highlights</h3>
                     <div className="adm-grid-2">
-                      <div className="adm-pair">
-                        <div className="adm-field">
-                          <label htmlFor="f49">Highlight 1: value</label>
-                          <input id="f49" type="text" defaultValue={"100%"} />
+                      {why.highlights.map((highlight, index) => (
+                        <div className="adm-pair" key={index}>
+                          <AdminField label={`Highlight ${index + 1}: value`} value={highlight.value} onChange={(value) => changeListItem("why", "highlights", index, "value", value)} />
+                          <AdminField label={`Highlight ${index + 1}: label`} value={highlight.label} onChange={(value) => changeListItem("why", "highlights", index, "label", value)} />
                         </div>
-                        <div className="adm-field">
-                          <label htmlFor="f50">Highlight 1: label</label>
-                          <input id="f50" type="text" defaultValue={"Tailored Solutions"} />
-                        </div>
-                      </div>
-                      <div className="adm-pair">
-                        <div className="adm-field">
-                          <label htmlFor="f51">Highlight 2: value</label>
-                          <input id="f51" type="text" defaultValue={"Practical"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f52">Highlight 2: label</label>
-                          <input id="f52" type="text" defaultValue={"Learning Impact"} />
-                        </div>
-                      </div>
-                      <div className="adm-pair">
-                        <div className="adm-field">
-                          <label htmlFor="f53">Highlight 3: value</label>
-                          <input id="f53" type="text" defaultValue={"Long-term"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f54">Highlight 3: label</label>
-                          <input id="f54" type="text" defaultValue={"Client Partnership"} />
-                        </div>
-                      </div>
-                      <div className="adm-pair">
-                        <div className="adm-field">
-                          <label htmlFor="f55">Highlight 4: value</label>
-                          <input id="f55" type="text" defaultValue={"Every Time"} />
-                        </div>
-                        <div className="adm-field">
-                          <label htmlFor="f56">Highlight 4: label</label>
-                          <input id="f56" type="text" defaultValue={"Commitment to Excellence"} />
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </article>
@@ -516,87 +491,33 @@ const HomeEditor = () => {
                   </header>
                   <div className="adm-panel-body">
                     <div className="adm-grid-2">
-                      <div className="adm-field">
-                        <label htmlFor="f57">Small heading</label>
-                        <input id="f57" type="text" defaultValue={"Our Approach"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f58">Heading</label>
-                        <input id="f58" type="text" defaultValue={"A Structured, Practical Methodology"} />
-                      </div>
+                      <AdminField label="Small heading" value={approach.smallHeading} onChange={(value) => changeSectionField("approach", "smallHeading", value)} />
+                      <AdminField label="Heading" value={approach.heading} onChange={(value) => changeSectionField("approach", "heading", value)} />
                     </div>
                     <div className="adm-stack adm-mt">
-                      <div className="adm-field">
-                        <label htmlFor="f59">Text under heading</label>
-                        <textarea id="f59" rows="2" defaultValue={"Every engagement follows the same disciplined process, adapted to your organization."}></textarea>
-                      </div>
+                      <AdminField label="Text under heading" rows="2" value={approach.text} onChange={(value) => changeSectionField("approach", "text", value)} />
                     </div>
                     <h3 className="adm-sub">Steps, in order</h3>
                     <ol className="adm-steps">
-                      <li>
-                        <span className="adm-step-no">1</span>
-                        <div className="adm-pair">
-                          <div className="adm-field">
-                            <label htmlFor="f60">Step 1: title</label>
-                            <input id="f60" type="text" defaultValue={"Understand"} />
+                      {approach.steps.map((step, index) => (
+                        <li key={index}>
+                          <span className="adm-step-no">{index + 1}</span>
+                          <div className="adm-pair">
+                            <AdminField label={`Step ${index + 1}: title`} value={step.title} onChange={(value) => changeListItem("approach", "steps", index, "title", value)} />
+                            <AdminField label={`Step ${index + 1}: text`} rows="3" value={step.text} onChange={(value) => changeListItem("approach", "steps", index, "text", value)} />
                           </div>
-                          <div className="adm-field">
-                            <label htmlFor="f61">Step 1: text</label>
-                            <textarea id="f61" rows="3" defaultValue={"Understand the organization's goals, challenges and people."}></textarea>
-                          </div>
-                        </div>
-                      </li>
-                      <li>
-                        <span className="adm-step-no">2</span>
-                        <div className="adm-pair">
-                          <div className="adm-field">
-                            <label htmlFor="f62">Step 2: title</label>
-                            <input id="f62" type="text" defaultValue={"Design"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f63">Step 2: text</label>
-                            <textarea id="f63" rows="3" defaultValue={"Build tailored solutions around actual business requirements."}></textarea>
-                          </div>
-                        </div>
-                      </li>
-                      <li>
-                        <span className="adm-step-no">3</span>
-                        <div className="adm-pair">
-                          <div className="adm-field">
-                            <label htmlFor="f64">Step 3: title</label>
-                            <input id="f64" type="text" defaultValue={"Deliver"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f65">Step 3: text</label>
-                            <textarea id="f65" rows="3" defaultValue={"Deliver practical, engaging and relevant programs."}></textarea>
-                          </div>
-                        </div>
-                      </li>
-                      <li>
-                        <span className="adm-step-no">4</span>
-                        <div className="adm-pair">
-                          <div className="adm-field">
-                            <label htmlFor="f66">Step 4: title</label>
-                            <input id="f66" type="text" defaultValue={"Measure"} />
-                          </div>
-                          <div className="adm-field">
-                            <label htmlFor="f67">Step 4: text</label>
-                            <textarea id="f67" rows="3" defaultValue={"Focus on application, outcomes and sustainable impact."}></textarea>
-                          </div>
-                        </div>
-                      </li>
+                        </li>
+                      ))}
                     </ol>
                     <h3 className="adm-sub">Background image</h3>
                     <div className="adm-image-row">
-                      <img src="/assets/images/img-training.jpg" alt="" />
-                      <div className="adm-image-meta">
-                        <p className="adm-file">img-training.jpg</p>
-                        <p className="adm-hint">Wide, at least 1600 × 900 px. A dark overlay is added on top. JPG, PNG or WebP.</p>
-                        <label className="adm-upload">
-                          <input type="file" accept="image/jpeg,image/png,image/webp" />
-                          <span>Change image</span>
-                        </label>
-                      </div>
+                      <img src={approach.image} alt="" />
+                      <AdminImageMeta
+                        imageUrl={approach.image}
+                        hint="Wide, at least 1600 × 900 px. A dark overlay is added on top. JPG, PNG or WebP."
+                        isUploading={uploadingImage === "approach"}
+                        onPick={(event) => uploadSectionImage("approach", event)}
+                      />
                     </div>
                   </div>
                 </article>
@@ -614,92 +535,47 @@ const HomeEditor = () => {
                   </header>
                   <div className="adm-panel-body">
                     <div className="adm-grid-2">
-                      <div className="adm-field">
-                        <label htmlFor="f68">Small heading</label>
-                        <input id="f68" type="text" defaultValue={"Training Programs"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f69">Heading</label>
-                        <input id="f69" type="text" defaultValue={"Learning Designed for Today’s Workplace"} />
-                      </div>
+                      <AdminField label="Small heading" value={training.smallHeading} onChange={(value) => changeSectionField("training", "smallHeading", value)} />
+                      <AdminField label="Heading" value={training.heading} onChange={(value) => changeSectionField("training", "heading", value)} />
                     </div>
                     <div className="adm-stack adm-mt">
-                      <div className="adm-field">
-                        <label htmlFor="f70">Text</label>
-                        <textarea id="f70" rows="3" defaultValue={"Our training programs are designed to build practical skills, strengthen professional capabilities, and support better performance in the workplace."}></textarea>
-                      </div>
+                      <AdminField label="Text" rows="3" value={training.text} onChange={(value) => changeSectionField("training", "text", value)} />
                     </div>
                     <h3 className="adm-sub">Number labels</h3>
                     <div className="adm-grid-3">
-                      <div className="adm-field">
-                        <label htmlFor="f71">Number 1: label</label>
-                        <input id="f71" type="text" defaultValue={"Ready Programs"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f72">Number 2: label</label>
-                        <input id="f72" type="text" defaultValue={"Categories"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f73">Number 3: label</label>
-                        <input id="f73" type="text" defaultValue={"Customizable"} />
-                      </div>
+                      {training.numbers.map((number, index) => (
+                        <AdminField
+                          key={index}
+                          label={`Number ${index + 1}: label`}
+                          value={number.label}
+                          onChange={(value) => changeListItem("training", "numbers", index, "label", value)}
+                        />
+                      ))}
                     </div>
                     <h3 className="adm-sub">Category tags</h3>
                     <div className="adm-grid-2">
-                      <div className="adm-field">
-                        <label htmlFor="f74" className="adm-sr">Category 1</label>
-                        <input id="f74" type="text" defaultValue={"Communication & Professional Skills"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f75" className="adm-sr">Category 2</label>
-                        <input id="f75" type="text" defaultValue={"Leadership & Management Development"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f76" className="adm-sr">Category 3</label>
-                        <input id="f76" type="text" defaultValue={"Individual Development Planning"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f77" className="adm-sr">Category 4</label>
-                        <input id="f77" type="text" defaultValue={"Banking & Financial Services"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f78" className="adm-sr">Category 5</label>
-                        <input id="f78" type="text" defaultValue={"Compliance, Risk & Governance"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f79" className="adm-sr">Category 6</label>
-                        <input id="f79" type="text" defaultValue={"Customer Experience & Service Excellence"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f80" className="adm-sr">Category 7</label>
-                        <input id="f80" type="text" defaultValue={"Project & Change Management"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f81" className="adm-sr">Category 8</label>
-                        <input id="f81" type="text" defaultValue={"Workplace Effectiveness"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f82" className="adm-sr">Category 9</label>
-                        <input id="f82" type="text" defaultValue={"Customized Corporate Training"} />
-                      </div>
+                      {training.tags.map((tag, index) => (
+                        <AdminField
+                          key={index}
+                          label={`Category ${index + 1}`}
+                          hideLabel
+                          value={tag.text}
+                          onChange={(value) => changeListItem("training", "tags", index, "text", value)}
+                        />
+                      ))}
                     </div>
                     <div className="adm-stack adm-mt">
-                      <div className="adm-field">
-                        <label htmlFor="f83">Button</label>
-                        <input id="f83" type="text" defaultValue={"View Training Programs"} />
-                      </div>
+                      <AdminField label="Button" value={training.button} onChange={(value) => changeSectionField("training", "button", value)} />
                     </div>
                     <h3 className="adm-sub">Section photo</h3>
                     <div className="adm-image-row">
-                      <img src="/assets/images/img-home-why.jpg" alt="" />
-                      <div className="adm-image-meta">
-                        <p className="adm-file">img-home-why.jpg</p>
-                        <p className="adm-hint">Landscape, at least 1600 × 1067 px (3:2). JPG, PNG or WebP.</p>
-                        <label className="adm-upload">
-                          <input type="file" accept="image/jpeg,image/png,image/webp" />
-                          <span>Change image</span>
-                        </label>
-                      </div>
+                      <img src={training.image} alt="" />
+                      <AdminImageMeta
+                        imageUrl={training.image}
+                        hint="Landscape, at least 1600 × 1067 px (3:2). JPG, PNG or WebP."
+                        isUploading={uploadingImage === "training"}
+                        onPick={(event) => uploadSectionImage("training", event)}
+                      />
                     </div>
                   </div>
                 </article>
@@ -717,30 +593,19 @@ const HomeEditor = () => {
                   </header>
                   <div className="adm-panel-body">
                     <div className="adm-stack">
-                      <div className="adm-field">
-                        <label htmlFor="f84">Heading</label>
-                        <input id="f84" type="text" defaultValue={"Ready to Elevate Your People and Performance?"} />
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f85">Text</label>
-                        <textarea id="f85" rows="2" defaultValue={"Let's build practical solutions that create meaningful and sustainable business impact."}></textarea>
-                      </div>
-                      <div className="adm-field">
-                        <label htmlFor="f86">Button</label>
-                        <input id="f86" type="text" defaultValue={"Request a Consultation"} />
-                      </div>
+                      <AdminField label="Heading" value={cta.heading} onChange={(value) => changeSectionField("cta", "heading", value)} />
+                      <AdminField label="Text" rows="2" value={cta.text} onChange={(value) => changeSectionField("cta", "text", value)} />
+                      <AdminField label="Button" value={cta.button} onChange={(value) => changeSectionField("cta", "button", value)} />
                     </div>
                     <h3 className="adm-sub">Background image</h3>
                     <div className="adm-image-row">
-                      <img src="/assets/images/img-approach.jpg" alt="" />
-                      <div className="adm-image-meta">
-                        <p className="adm-file">img-approach.jpg</p>
-                        <p className="adm-hint">Wide, at least 1600 × 900 px. A dark overlay is added on top. JPG, PNG or WebP.</p>
-                        <label className="adm-upload">
-                          <input type="file" accept="image/jpeg,image/png,image/webp" />
-                          <span>Change image</span>
-                        </label>
-                      </div>
+                      <img src={cta.image} alt="" />
+                      <AdminImageMeta
+                        imageUrl={cta.image}
+                        hint="Wide, at least 1600 × 900 px. A dark overlay is added on top. JPG, PNG or WebP."
+                        isUploading={uploadingImage === "cta"}
+                        onPick={(event) => uploadSectionImage("cta", event)}
+                      />
                     </div>
                   </div>
                 </article>
@@ -749,7 +614,13 @@ const HomeEditor = () => {
           </div>
         </div>
 
-        <AdminSaveBar />
+        <AdminSaveBar
+          onSave={saveHome}
+          statusMessage={statusMessage}
+          isError={isError}
+          isSaving={isSaving}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
       </div>
     </div>
   );
