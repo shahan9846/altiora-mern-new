@@ -17,7 +17,7 @@ const ProtectedRoute = () => {
         const response = await api.get("/auth/me");
         setAdmin(response.data.admin);
         setLoginStatus("loggedIn");
-      } catch (error) {
+      } catch {
         setLoginStatus("loggedOut");
       }
     };

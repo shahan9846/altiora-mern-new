@@ -1,21 +1,11 @@
 // "On this page" outline — jump links to each editable section.
 // The link of the section the admin is currently looking at is shown in bold.
+//   sections - a list of { id, name, count }: id is the id of the section on the page,
+//              count is the number shown on the right.
 import { useEffect, useState } from "react";
 
-// id = the id of the section on the page, count = the number shown on the right
-const sections = [
-  { id: "hero", name: "Hero", count: 14 },
-  { id: "values", name: "Value strip", count: 10 },
-  { id: "about", name: "About Altiora", count: 5 },
-  { id: "services", name: "Services", count: 15 },
-  { id: "why", name: "Why Altiora", count: 12 },
-  { id: "approach", name: "Our approach", count: 11 },
-  { id: "training", name: "Training programs", count: 16 },
-  { id: "cta", name: "Closing banner", count: 3 },
-];
-
-const AdminOutline = () => {
-  const [activeId, setActiveId] = useState("hero");
+const AdminOutline = ({ sections }) => {
+  const [activeId, setActiveId] = useState(sections[0].id);
 
   useEffect(() => {
     // Watch a thin band near the top of the screen.
@@ -37,7 +27,7 @@ const AdminOutline = () => {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [sections]);
 
   return (
     <nav className="adm-outline" aria-label="Sections on this page">

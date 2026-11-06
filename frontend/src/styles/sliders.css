@@ -1,0 +1,58 @@
+/* Styles for the two sliders on the Home page: the Hero images (arrows) and the service cards.
+   The rest of the hero and card styles are in home.css. */
+
+/* ---------- Hero: previous / next arrows on the image ---------- */
+.hero-slider-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  color: var(--white);
+  background: rgba(10, 10, 10, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: all 0.25s var(--ease);
+}
+.hero-slider-nav svg { width: 18px; height: 18px; }
+.hero-slider-prev { left: 14px; }
+.hero-slider-next { right: 14px; }
+.hero-slider-nav:hover { color: var(--black); background: var(--gold); border-color: var(--gold); opacity: 1; transform: translateY(-50%) scale(1.08); }
+
+/* ---------- Service cards: a row that slides by itself ---------- */
+.services-auto-slider {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+  cursor: grab;
+  scroll-behavior: auto; /* the code moves it every frame, so no smoothing here */
+  scrollbar-width: none;
+  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+}
+.services-auto-slider::-webkit-scrollbar { display: none; }
+.services-auto-slider.is-dragging { cursor: grabbing; user-select: none; }
+.services-auto-slider.is-dragging a { pointer-events: none; }
+
+.services-auto-track { display: flex; width: max-content; }
+.services-auto-track .service-card-img { flex: 0 0 360px; width: 360px; margin-right: 24px; scroll-snap-align: none; }
+
+/* The arrow buttons need to be clickable buttons */
+.slider-arrow { cursor: pointer; }
+
+@media (max-width: 620px) {
+  .services-auto-track .service-card-img { flex-basis: 280px; width: 280px; margin-right: 16px; }
+}
+
+/* On small screens the hero text is re-ordered around the image (see home.css),
+   so the text wrapper must not become a block of its own. */
+@media (max-width: 900px) {
+  .hero-copy .slide-pulse { display: contents; }
+}

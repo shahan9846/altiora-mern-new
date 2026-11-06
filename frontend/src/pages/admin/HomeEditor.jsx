@@ -1,9 +1,8 @@
 // Admin → Home page editor.
-// Every section is live: the text and images load from the backend,
-// change as the admin types, and are all saved together with "Save changes".
-import { useEffect, useState } from "react";
+// Loading, typing, uploading and saving are handled by useEditablePage.
+// This file only describes the fields of each Home section.
 import "../../styles/admin.css";
-import api from "../../api/api";
+import useEditablePage from "../../hooks/useEditablePage";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import AdminPageBanner from "../../components/admin/AdminPageBanner";
@@ -22,67 +21,34 @@ const valueChips = [
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3.5 18.5 9 12l4 3 7.5-8.5M15.5 6.5h5v5" /></svg>,
 ];
 
+// The links in the "On this page" list (id = section id, count = number of texts)
+const sections = [
+  { id: "hero", name: "Hero", count: 14 },
+  { id: "values", name: "Value strip", count: 10 },
+  { id: "about", name: "About Altiora", count: 5 },
+  { id: "services", name: "Services", count: 5 },
+  { id: "why", name: "Why Altiora", count: 12 },
+  { id: "approach", name: "Our approach", count: 11 },
+  { id: "training", name: "Training programs", count: 16 },
+  { id: "cta", name: "Closing banner", count: 3 },
+];
+
 const HomeEditor = () => {
-  const [page, setPage] = useState(null); // all sections of the Home page, as the admin is typing
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("");
-  const [isError, setIsError] = useState(false); // true when statusMessage is an error
-  const [isSaving, setIsSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(null); // which image is uploading, for example "about" or "hero-1"
+  const {
+    page,
+    hasUnsavedChanges,
+    statusMessage,
+    setStatusMessage,
+    isError,
+    isSaving,
+    uploadingImage,
+    changeSectionField,
+    changeListItem,
+    uploadImage,
+    savePage,
+  } = useEditablePage("home");
 
-  // When the page opens, load the saved text
-  useEffect(() => {
-    const loadHome = async () => {
-      try {
-        const response = await api.get("/pages/home");
-        setPage(response.data);
-      } catch (error) {
-        setIsError(true);
-        setStatusMessage("Could not load the text. Please refresh the page.");
-      }
-    };
-    loadHome();
-  }, []);
-
-  // Auto-dismiss the success message after 5 seconds so it doesn't linger forever
-  useEffect(() => {
-    if (statusMessage && !isError) {
-      const timer = setTimeout(() => {
-        setStatusMessage("");
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [statusMessage, isError]);
-
-  // Every change below goes through this: it updates the page and marks it as "not saved yet"
-  const updatePage = (makeNewPage) => {
-    setPage(makeNewPage);
-    setHasUnsavedChanges(true);
-    if (statusMessage === "Saved") {
-      setStatusMessage("");
-    }
-  };
-
-  // Change one field of a section, for example ("about", "heading", "New heading")
-  const changeSectionField = (sectionName, fieldName, newValue) => {
-    updatePage((currentPage) => ({
-      ...currentPage,
-      [sectionName]: { ...currentPage[sectionName], [fieldName]: newValue },
-    }));
-  };
-
-  // Change one field of one item in a list, for example ("services", "cards", 2, "title", "New title")
-  const changeListItem = (sectionName, listName, itemIndex, fieldName, newValue) => {
-    updatePage((currentPage) => {
-      const section = currentPage[sectionName];
-      const newList = section[listName].map((item, index) =>
-        index === itemIndex ? { ...item, [fieldName]: newValue } : item
-      );
-      return { ...currentPage, [sectionName]: { ...section, [listName]: newList } };
-    });
-  };
-
-  // The Hero editor uses these two short names
+  // Shorter names used by the Hero fields below
   const changeSlideField = (slideIndex, fieldName, newValue) => {
     changeListItem("hero", "slides", slideIndex, fieldName, newValue);
   };
@@ -91,79 +57,14 @@ const HomeEditor = () => {
     changeSectionField("hero", buttonName, newValue);
   };
 
-  // Upload the chosen file, then give the new image URL to saveUrl.
-  // uploadId says which image is uploading, so only that button shows "Uploading...".
-  const uploadImage = async (uploadId, saveUrl, event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadingImage(uploadId);
-    setIsError(false);
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const response = await api.post("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      saveUrl(response.data.imageUrl);
-    } catch (error) {
-      setIsError(true);
-      setStatusMessage(error.response?.data?.message || "Could not upload image. Please try again.");
-    } finally {
-      setUploadingImage(null);
-      // Reset the file input so the admin can re-select the same image if needed
-      event.target.value = "";
-    }
-  };
-
   // One image for a whole section (About, Approach, Training, Closing banner)
   const uploadSectionImage = (sectionName, event) => {
     uploadImage(sectionName, (url) => changeSectionField(sectionName, "image", url), event);
   };
 
-  // The image of one Services card
-  const uploadCardImage = (cardIndex, event) => {
-    uploadImage(`card-${cardIndex}`, (url) => changeListItem("services", "cards", cardIndex, "image", url), event);
-  };
-
   // The image of one Hero slide
   const uploadSlideImage = (slideIndex, event) => {
     uploadImage(`hero-${slideIndex}`, (url) => changeSlideField(slideIndex, "image", url), event);
-  };
-
-  // Save changes: send all the sections to the backend
-  const saveHome = async () => {
-    setIsSaving(true);
-    setIsError(false);
-    setStatusMessage("");
-
-    const startTime = Date.now();
-    try {
-      await api.put("/pages/home", page);
-
-      // Guarantee a minimum loading duration (700ms) so the spinner animation
-      // is smooth and visible, preventing the jarring split-second flash
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 700) {
-        await new Promise((resolve) => setTimeout(resolve, 700 - elapsed));
-      }
-
-      setHasUnsavedChanges(false);
-      setStatusMessage("Saved");
-    } catch (error) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 500) {
-        await new Promise((resolve) => setTimeout(resolve, 500 - elapsed));
-      }
-
-      // The save failed: keep what the admin typed, so nothing is lost, and show the reason
-      setIsError(true);
-      setStatusMessage(error.response?.data?.message || "Cannot reach the server. Your changes were not saved.");
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   if (!page) {
@@ -188,10 +89,10 @@ const HomeEditor = () => {
               onClose={() => setStatusMessage("")}
             />
 
-            <AdminPageBanner />
+            <AdminPageBanner title="Home" viewUrl="/" />
 
             <div className="adm-layout">
-              <AdminOutline />
+              <AdminOutline sections={sections} />
 
               <div className="adm-panels">
                 <article className="adm-panel" id="hero" aria-labelledby="hero-title">
@@ -406,11 +307,10 @@ const HomeEditor = () => {
                   <header className="adm-panel-head">
                     <div>
                       <h2 id="services-title">Services</h2>
-                      <p>Five service cards in a scrolling row.</p>
+                      <p>The service cards in a scrolling row.</p>
                     </div>
                     <div className="adm-counts">
-                      <span className="adm-count">15 texts</span>
-                      <span className="adm-count">5 images</span>
+                      <span className="adm-count">5 texts</span>
                     </div>
                   </header>
                   <div className="adm-panel-body">
@@ -422,25 +322,9 @@ const HomeEditor = () => {
                       <AdminField label="Text under heading" rows="2" value={services.text} onChange={(value) => changeSectionField("services", "text", value)} />
                     </div>
                     <h3 className="adm-sub">Service cards</h3>
-                    <div className="adm-items">
-                      {services.cards.map((card, index) => (
-                        <div className="adm-item" key={index}>
-                          <div className="adm-item-media">
-                            <img src={card.image} alt="" />
-                            <AdminImageMeta
-                              imageUrl={card.image}
-                              hint="Landscape, at least 1200 × 900 px (4:3). JPG, PNG or WebP."
-                              isUploading={uploadingImage === `card-${index}`}
-                              onPick={(event) => uploadCardImage(index, event)}
-                            />
-                          </div>
-                          <div className="adm-stack">
-                            <AdminField label={`Service ${index + 1}: title`} value={card.title} onChange={(value) => changeListItem("services", "cards", index, "title", value)} />
-                            <AdminField label={`Service ${index + 1}: text`} rows="3" value={card.text} onChange={(value) => changeListItem("services", "cards", index, "text", value)} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <p className="adm-web-address">
+                      The cards come from the <a href="/admin/services"><u>Services</u></a> list, where you can add, edit, hide and reorder them.
+                    </p>
                     <h3 className="adm-sub">Links</h3>
                     <div className="adm-grid-2">
                       <AdminField label="Card link label" value={services.cardLinkLabel} onChange={(value) => changeSectionField("services", "cardLinkLabel", value)} />
@@ -615,7 +499,7 @@ const HomeEditor = () => {
         </div>
 
         <AdminSaveBar
-          onSave={saveHome}
+          onSave={savePage}
           statusMessage={statusMessage}
           isError={isError}
           isSaving={isSaving}

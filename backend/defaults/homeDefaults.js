@@ -52,37 +52,11 @@ const homeDefaults = {
     image: '/assets/images/photo-team-whiteboard.jpg',
   },
 
+  // The service cards themselves come from the Services dashboard (not from this file)
   services: {
     smallHeading: 'What We Do',
     heading: 'Solutions Designed to Develop People and Strengthen Performance',
     text: 'At Altiora, we turn development needs into focused, practical solutions.',
-    cards: [
-      {
-        image: '/assets/images/service-corporate-training.webp',
-        title: 'Corporate Training & Learning and Development',
-        text: 'We support organizations in developing the capabilities required for stronger individual, team, and business performance through relevant and practical learning interventions.',
-      },
-      {
-        image: '/assets/images/service-customized-training.webp',
-        title: 'Customized Training Solutions',
-        text: 'Every organization has unique development requirements. We work with clients to understand their objectives, target audience, and expected outcomes before developing or recommending an appropriate learning solution.',
-      },
-      {
-        image: '/assets/images/service-professional-development.webp',
-        title: 'Professional Development',
-        text: 'We support professionals in strengthening the knowledge, skills, and capabilities required to progress in today’s evolving workplace.',
-      },
-      {
-        image: '/assets/images/service-organizational-capability.webp',
-        title: 'Organizational Capability Development',
-        text: 'We help organizations identify development priorities and capability gaps, and translate them into focused learning and development actions that support workforce performance.',
-      },
-      {
-        image: '/assets/images/service-career-guidance.webp',
-        title: 'Career Guidance & Development',
-        text: 'We provide career development support for professionals, graduates, and emerging talent through career planning, CV and profile development, interview preparation, and professional development guidance.',
-      },
-    ],
     cardLinkLabel: 'Learn More',
     viewAllButton: 'View All Services',
   },

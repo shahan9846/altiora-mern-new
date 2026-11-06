@@ -518,8 +518,8 @@ section {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 40px;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
   align-items: center;
   padding-bottom: 90px;
 }
@@ -633,8 +633,8 @@ section {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
-  aspect-ratio: 1 / 0.92;
+  max-width: 580px;
+  aspect-ratio: 16 / 10.5;
   overflow: hidden;
   border-radius: var(--radius-l);
   border: 1px solid var(--gold-line);
@@ -1568,3 +1568,72 @@ section {
     transition-duration: 0.001ms !important;
   }
 }
+/* =====================================================================
+   Long text safety
+   The admin can type any amount of text. These rules make sure a long
+   title or paragraph never pushes a card out of its place or breaks the page.
+   ===================================================================== */
+
+/* A very long word (or a web address) breaks onto the next line instead of running outside its box */
+main h1, main h2, main h3, main h4, main h5, main p, main li, main strong, main small, main span {
+  overflow-wrap: break-word;
+}
+
+/* Boxes in a grid or row may shrink below the width of their text, so the text wraps */
+.grid-2 > *, .card-grid-3 > *, .card-grid-4 > *, .card-grid-5 > *, .support-grid > *,
+.value-grid > *, .stat-grid > *, .process-grid > *, .mini-stats > * {
+  min-width: 0;
+}
+
+/* Service cards: same height in a row, the image and text on top, the "Learn More" link always at the bottom */
+.service-card-img { display: flex; flex-direction: column; }
+.card-body { display: flex; flex: 1; flex-direction: column; }
+.card-body h3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-text { margin-bottom: 20px; }
+.card-link { align-self: flex-start; margin-top: auto; }
+
+/* Cards with a number or a short label: keep long values inside the card */
+.stat-cell .num, .stat-cell .label, .mini-stats strong, .mini-stats span, .value-item h4, .process-step h3 {
+  overflow-wrap: anywhere;
+}
+
+/* Tags and chips: a long one wraps inside its own pill */
+.training-tag, .explorer-tags span { max-width: 100%; }
+
+/* Value strip titles may wrap (they used to stay on one line) */
+.value-item > div { min-width: 0; }
+.value-item h4 {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.value-item p {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* A long button label wraps inside the button instead of running outside the page */
+.btn { max-width: 100%; white-space: normal; text-align: center; }
+
+/* Hero: the text column and the image column may shrink, so very long words wrap inside */
+.hero .container > * { min-width: 0; }
+.btn, .card-link, .explorer-enquire { overflow-wrap: anywhere; }
+
+/* The small heading above a title: a long one wraps instead of running outside the page */
+.eyebrow { max-width: 100%; overflow-wrap: anywhere; }
+.eyebrow::before { flex-shrink: 0; }
+
+/* The Services heading block may shrink on phones, so a long heading wraps */
+.services-head > div:first-child { min-width: 0; max-width: 100%; }
+
+/* Intro paragraphs wrap very long words too */
+.lede { overflow-wrap: anywhere; }

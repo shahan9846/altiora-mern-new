@@ -3,28 +3,17 @@
 // If the admin has not saved anything yet, the backend sends the original text.
 import { useEffect, useState } from "react";
 import "../../styles/home.css";
+import "../../styles/sliders.css";
 import Navbar from "../../components/user/Navbar";
 import Footer from "../../components/user/Footer";
 import api from "../../api/api";
-
-// Where each Services card links to (fixed, same order as the cards)
-const serviceLinks = [
-  "/services/corporate-training-learning-and-development",
-  "/services/customized-training-solutions",
-  "/services/professional-development",
-  "/services/organizational-capability-development",
-  "/services/career-guidance-development",
-];
+import HeroSection from "../../components/user/HeroSection";
+import ServicesSection from "../../components/user/ServicesSection";
+import useServices from "../../hooks/useServices";
 
 // Small drawings. They stay the same, only the text and images are editable.
 const arrowIcon = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-);
-
-const serviceIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-    <path d="M4 18V9l8-4 8 4v9" /><path d="M9 21v-6h6v6" /><path d="M4 10.5h16" />
-  </svg>
 );
 
 // Icons for the five Value strip items, in order
@@ -115,6 +104,7 @@ const tagIcons = [
 const Home = () => {
   const [page, setPage] = useState(null); // all sections of the Home page
   const hero = page?.hero;
+  const services = useServices(); // the service cards come from the Services dashboard
 
   // When the page opens, load the saved text
   useEffect(() => {
@@ -135,51 +125,7 @@ const Home = () => {
 
       <main>
         {/* ============ HERO ============ */}
-        <section className="hero">
-          <div className="container">
-            {hero ? (
-              <>
-                <div className="hero-copy">
-                  <span className="eyebrow">{hero.slides[0].smallHeading}</span>
-                  <h1>
-                    {hero.slides[0].headingLine1}<br /><em>{hero.slides[0].headingLine2}</em>
-                  </h1>
-                  <p className="lede">{hero.slides[0].text}</p>
-
-                  <div className="hero-actions">
-                    {hero.primaryButton && (
-                      <a className="btn btn-gold" href="/services">
-                        {hero.primaryButton}
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                      </a>
-                    )}
-                    {hero.secondaryButton && (
-                      <a className="btn btn-outline-dark" href="#">{hero.secondaryButton}</a>
-                    )}
-                  </div>
-                </div>
-
-                <div className="hero-visual">
-                  <span className="thin-line thin-line-a"></span>
-                  <span className="thin-line thin-line-b"></span>
-                  <div className="hero-slider">
-                    <div className="hero-slide is-active">
-                      <img src={hero.slides[0].image} alt="A team collaborating around a table in a bright meeting room" />
-                    </div>
-                    <div className="hero-slider-dots">
-                      <button type="button" aria-label="Show image 1" className="is-active"></button>
-                      <button type="button" aria-label="Show image 2"></button>
-                      <button type="button" aria-label="Show image 3"></button>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p>Loading...</p>
-            )}
-          </div>
-        </section>
-
+        {hero ? <HeroSection hero={hero} /> : <p className="page-loading">Loading...</p>}
 
         {/* Every section below shows the text saved in the database (or the original text) */}
         {page && (
@@ -225,56 +171,7 @@ const Home = () => {
             </section>
 
             {/* ============ SERVICES ============ */}
-            <section id="services" className="section-off">
-              <div className="container">
-                <div className="section-head services-head">
-                  <div>
-                    <span className="eyebrow">{page.services.smallHeading}</span>
-                    <h2>{page.services.heading}</h2>
-                    <p>{page.services.text}</p>
-                  </div>
-                  <div className="slider-controls">
-                    <button type="button" className="slider-arrow" aria-label="Previous services" disabled>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 6l-6 6 6 6" /></svg>
-                    </button>
-                    <button type="button" className="slider-arrow" aria-label="Next services">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="slider-viewport">
-                  <div className="slider-track">
-                    {page.services.cards.map((card, index) => (
-                      <div className="service-card-img" key={index}>
-                        <div className="card-media">
-                          <div className="media-inner">
-                            <img src={card.image} alt={card.title} />
-                          </div>
-                          <div className="card-icon">{serviceIcon}</div>
-                        </div>
-                        <div className="card-body">
-                          <h3>{card.title}</h3>
-                          <p className="card-text">{card.text}</p>
-                          {page.services.cardLinkLabel && (
-                            <a className="card-link" href={serviceLinks[index]}>
-                              {page.services.cardLinkLabel}
-                              {arrowIcon}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {page.services.viewAllButton && (
-                  <div className="text-center mt-44">
-                    <a className="btn btn-outline-light" href="/services">{page.services.viewAllButton}</a>
-                  </div>
-                )}
-              </div>
-            </section>
+            <ServicesSection text={page.services} services={services} />
 
             {/* ============ WHY ALTIORA ============ */}
             <section id="why-altiora" className="section-white">
@@ -380,7 +277,7 @@ const Home = () => {
                 <h2>{page.cta.heading}</h2>
                 <p>{page.cta.text}</p>
                 {page.cta.button && (
-                  <a href="#" className="btn btn-gold">
+                  <a href="/contact" className="btn btn-gold">
                     {page.cta.button}
                     {arrowIcon}
                   </a>

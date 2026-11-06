@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.4",
     "multer": "^2.5.0",
+    "new-folder": "file:..",
     "nodemon": "^3.1.14"
   }
 }

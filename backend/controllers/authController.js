@@ -77,3 +77,64 @@ export const getCurrentAdmin = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong, please try again' });
   }
 };
+
+// PUT /api/auth/account
+// Body: { currentPassword, newEmail?, newPassword? }
+// Changes the login username (the email) and/or the password.
+// The current password is always required, so someone who finds a logged-in screen cannot lock the owner out.
+export const updateAccount = async (req, res) => {
+  try {
+    const { currentPassword, newEmail, newPassword } = req.body;
+
+    if (!currentPassword) {
+      return res.status(400).json({ message: 'Please enter your current password' });
+    }
+
+    const admin = await Admin.findById(req.adminId);
+
+    if (!admin) {
+      return res.status(401).json({ message: 'This admin no longer exists' });
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(currentPassword, admin.password);
+
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: 'Your current password is not correct' });
+    }
+
+    let hasChanged = false;
+
+    // New username (email)
+    const email = typeof newEmail === 'string' ? newEmail.toLowerCase().trim() : '';
+
+    if (email && email !== admin.email) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: 'Please enter a valid email address' });
+      }
+      if (await Admin.exists({ email, _id: { $ne: admin._id } })) {
+        return res.status(400).json({ message: 'That email is already used by another admin' });
+      }
+      admin.email = email;
+      hasChanged = true;
+    }
+
+    // New password
+    if (newPassword) {
+      if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ message: 'The new password must be at least 8 characters' });
+      }
+      admin.password = await bcrypt.hash(newPassword, 10);
+      hasChanged = true;
+    }
+
+    if (!hasChanged) {
+      return res.status(400).json({ message: 'There is nothing to change' });
+    }
+
+    await admin.save();
+    res.json({ message: 'Account updated', admin: { id: admin._id, email: admin.email } });
+  } catch (error) {
+    console.error('Update account error:', error.message);
+    res.status(500).json({ message: 'Something went wrong, please try again' });
+  }
+};

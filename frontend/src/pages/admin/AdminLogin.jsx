@@ -18,7 +18,7 @@ const AdminLogin = () => {
 
     try {
       await api.post("/auth/login", { email, password });
-      navigate("/admin/pages/home");
+      navigate("/admin");
     } catch (error) {
       // Show the backend's message (for example "Invalid email or password"),
       // or a general message if the backend could not be reached.

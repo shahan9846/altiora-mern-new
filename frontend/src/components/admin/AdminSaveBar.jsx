@@ -2,8 +2,16 @@
 // statusMessage shows "Saved" or an error (isError is true for an error).
 // isSaving disables the button while the save is running and shows a spinner.
 // hasUnsavedChanges indicates the admin modified text that has not yet been saved.
+// idleMessage is shown when there is nothing to save (the default suits the page editors).
 
-const AdminSaveBar = ({ onSave, statusMessage, isError, isSaving, hasUnsavedChanges }) => {
+const AdminSaveBar = ({
+  onSave,
+  statusMessage,
+  isError,
+  isSaving,
+  hasUnsavedChanges,
+  idleMessage = "All texts use the original wording",
+}) => {
   const renderStatus = () => {
     if (isSaving) {
       return (
@@ -62,7 +70,7 @@ const AdminSaveBar = ({ onSave, statusMessage, isError, isSaving, hasUnsavedChan
 
     return (
       <span className="adm-save-status is-idle" role="status">
-        All texts use the original wording
+        {idleMessage}
       </span>
     );
   };

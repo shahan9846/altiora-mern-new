@@ -1,0 +1,95 @@
+/* Styles for the Training page: the area viewer and the closing banner with two buttons.
+   Loaded together with home.css (colors) and pages.css (shared parts). */
+
+/* ---------- Closing banner with two buttons ---------- */
+.cta-band .cta-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 34px; }
+.cta-band .cta-actions .btn { margin-top: 0; }
+.cta-band .cta-actions .btn-outline-light { background: transparent; border: 1px solid var(--gold-line); color: var(--gold-light); }
+.cta-band .cta-actions .btn-outline-light:hover { background: linear-gradient(180deg, var(--gold-light), var(--gold)); color: var(--black); border-color: transparent; }
+
+.section-head.section-head-wide, .section-head.section-head-wide p { max-width: none; }
+
+/* ---------- Area viewer: list of areas on the left, the chosen area on the right ---------- */
+.explorer { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: start; scroll-margin-top: 100px; }
+.explorer-select { display: none; position: relative; }
+.explorer-nav { position: sticky; top: 100px; display: flex; flex-direction: column; border-left: 1px solid rgba(23, 20, 15, 0.12); }
+.explorer-tab {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; margin-left: -1px;
+  border: 0; border-left: 2px solid transparent; background: none;
+  font: inherit; font-size: 0.92rem; line-height: 1.4; text-align: left; color: var(--ink-soft); cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.explorer-tab small { flex-shrink: 0; min-width: 26px; padding: 2px 8px; border-radius: 999px; background: rgba(23, 20, 15, 0.06); font-size: 0.72rem; font-weight: 600; text-align: center; color: var(--ink-mute); }
+.explorer-tab:hover { color: var(--ink); background: rgba(185, 146, 74, 0.08); }
+.explorer-tab.active { color: var(--ink); font-weight: 600; border-left-color: var(--gold); background: var(--white); }
+.explorer-tab.active small { background: rgba(185, 146, 74, 0.18); color: var(--gold-deep); }
+
+.explorer-panel { padding: 36px 40px; background: var(--white); border: 1px solid rgba(23, 20, 15, 0.1); border-radius: var(--radius-l); animation: explorer-in 0.35s var(--ease) both; }
+.explorer-panel h3 { margin-top: 12px; font-size: 1.5rem; color: var(--ink); }
+.explorer-desc { margin-top: 14px; max-width: 70ch; color: var(--ink-soft); }
+.explorer-list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 32px; padding-bottom: 12px; border-bottom: 1px solid var(--gold-line); }
+.explorer-list-head h4 { font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-deep); }
+.explorer-list-head span { font-size: 0.82rem; color: var(--ink-mute); }
+.explorer-list { list-style: none; margin: 0; padding: 0; }
+.explorer-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 22px 0; border-bottom: 1px solid rgba(23, 20, 15, 0.08); }
+.explorer-list li:last-child { border-bottom: 0; padding-bottom: 0; }
+.explorer-row-main h5 { font-size: 1.02rem; font-weight: 600; color: var(--ink); }
+.explorer-row-main p { margin-top: 6px; max-width: 62ch; font-size: 0.9rem; line-height: 1.6; color: var(--ink-soft); }
+.explorer-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.explorer-tags span { padding: 4px 12px; border-radius: 999px; background: rgba(185, 146, 74, 0.12); font-size: 0.76rem; line-height: 1.4; color: var(--gold-deep); }
+.explorer-enquire {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px;
+  border: 1px solid var(--gold-line); border-radius: 999px; font-size: 0.82rem; font-weight: 500; color: var(--gold-deep); white-space: nowrap;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+.explorer-enquire svg { width: 14px; height: 14px; }
+.explorer-enquire:hover { background: linear-gradient(180deg, var(--gold-light), var(--gold)); color: var(--black); border-color: transparent; }
+
+/* ---------- The dropdown that replaces the side list on small screens ---------- */
+.explorer-select-label { display: block; margin-bottom: 8px; font-size: 0.74rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.explorer-select-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 10px 16px;
+  border: 1px solid var(--gold-line); border-radius: var(--radius-m); background: var(--white);
+  font: inherit; text-align: left; color: var(--ink); cursor: pointer; box-shadow: rgba(23, 20, 15, 0.4) 0 8px 20px -16px;
+}
+.explorer-select-name { flex: 1 1 0; font-size: 0.95rem; font-weight: 500; line-height: 1.35; }
+.explorer-select-btn small, .explorer-select-list small { flex-shrink: 0; min-width: 26px; padding: 2px 8px; border-radius: 999px; background: rgba(185, 146, 74, 0.16); font-size: 0.72rem; font-weight: 600; text-align: center; color: var(--gold-deep); }
+.explorer-select-btn svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--gold-deep); transition: transform 0.2s var(--ease); }
+.explorer-select-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.explorer-select-list {
+  position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px); max-height: min(60vh, 420px); overflow-y: auto;
+  margin: 0; padding: 6px; list-style: none; background: var(--white);
+  border: 1px solid rgba(23, 20, 15, 0.12); border-radius: var(--radius-m); box-shadow: rgba(23, 20, 15, 0.45) 0 24px 50px -18px;
+}
+.explorer-select-list button {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; padding: 10px 12px;
+  border: 0; border-left: 2px solid transparent; border-radius: 6px; background: none;
+  font: inherit; font-size: 0.92rem; line-height: 1.35; text-align: left; color: var(--ink-soft); cursor: pointer;
+}
+.explorer-select-list button:hover { background: rgba(185, 146, 74, 0.08); }
+.explorer-select-list button.active { border-left-color: var(--gold); background: rgba(185, 146, 74, 0.1); color: var(--ink); font-weight: 600; }
+
+@keyframes explorer-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: none; }
+}
+
+@media (max-width: 960px) {
+  .explorer { grid-template-columns: 1fr; gap: 24px; }
+  .explorer-nav { display: none; }
+  .explorer-select { display: block; }
+  .explorer-panel { padding: 28px 24px; }
+}
+@media (max-width: 560px) {
+  .explorer-panel { padding: 24px 18px; }
+  .explorer-list li { flex-direction: column; gap: 14px; }
+}
+
+/* Long text in the training area viewer wraps inside its box */
+.explorer, .explorer > * { min-width: 0; }
+.explorer-row-main { min-width: 0; }
+.explorer-tab span, .explorer-select-name, .explorer-select-list button span,
+.explorer-row-main h5, .explorer-row-main p, .explorer-panel h3, .explorer-desc, .explorer-tags span { overflow-wrap: anywhere; min-width: 0; }
+.explorer-list-head { flex-wrap: wrap; }
+.explorer-list-head h4, .explorer-list-head span { min-width: 0; overflow-wrap: anywhere; }

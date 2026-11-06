@@ -1,9 +1,25 @@
 import PageContent from '../models/PageContent.js';
 import homeDefaults from '../defaults/homeDefaults.js';
+import aboutDefaults from '../defaults/aboutDefaults.js';
+import whyDefaults from '../defaults/whyDefaults.js';
+import servicesPageDefaults from '../defaults/servicesPageDefaults.js';
+import trainingPageDefaults from '../defaults/trainingPageDefaults.js';
+import contactPageDefaults from '../defaults/contactPageDefaults.js';
+import siteDefaults from '../defaults/siteDefaults.js';
+import careerDefaults from '../defaults/careerDefaults.js';
+import mergeWithDefaults from '../defaults/mergeWithDefaults.js';
 
 // The pages that exist so far. Only these names are accepted.
+// To add a page: create its defaults file and list it here.
 const defaultsByPage = {
   home: homeDefaults,
+  about: aboutDefaults,
+  why: whyDefaults,
+  services: servicesPageDefaults,
+  training: trainingPageDefaults,
+  contact: contactPageDefaults,
+  site: siteDefaults,
+  career: careerDefaults,
 };
 
 // GET /api/pages/:pageName  (public)
@@ -18,8 +34,8 @@ export const getPage = async (req, res) => {
     }
 
     const savedPage = await PageContent.findOne({ page: pageName });
-    // Saved sections win; any section not saved yet falls back to the original text
-    const pageContent = savedPage ? { ...defaultContent, ...savedPage.content } : defaultContent;
+    // Saved text wins; anything not saved yet falls back to the original text
+    const pageContent = mergeWithDefaults(defaultContent, savedPage?.content);
 
     res.json(pageContent);
   } catch (error) {
@@ -28,10 +44,22 @@ export const getPage = async (req, res) => {
   }
 };
 
+// No single piece of text on a page may be longer than this (the admin boxes allow less).
+const MAX_TEXT_LENGTH = 1000;
+
+// True when some text inside the value (a string, a list or an object) is too long
+const hasTooLongText = (value) => {
+  if (typeof value === 'string') return value.length > MAX_TEXT_LENGTH;
+  if (Array.isArray(value)) return value.some(hasTooLongText);
+  if (value && typeof value === 'object') return Object.values(value).some(hasTooLongText);
+  return false;
+};
+
 // A section is valid when it is an object and each of its lists
 // (slides, cards, items...) has the same number of entries as the original.
 const isSectionValid = (section, defaultSection) => {
   if (!section || typeof section !== 'object') return false;
+  if (hasTooLongText(section)) return false;
 
   return Object.keys(defaultSection).every((key) => {
     if (Array.isArray(defaultSection[key])) {

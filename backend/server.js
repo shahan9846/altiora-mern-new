@@ -8,11 +8,18 @@ import connectDatabase from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import pageRoutes from './routes/pageRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import serviceRoutes from './routes/serviceRoutes.js';
+import trainingRoutes from './routes/trainingRoutes.js';
+import enquiryRoutes from './routes/enquiryRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import { addDefaultServicesIfEmpty } from './controllers/serviceController.js';
+import { addDefaultTrainingIfEmpty } from './controllers/trainingController.js';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +38,23 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/training', trainingRoutes);
+app.use('/api/enquiries', enquiryRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
+// Serve the React frontend production build
+app.use(express.static(frontendDistPath));
+
+// Handle React Router routes
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api')) {
+    return next();
+  }
+
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
+
 
 // Connect to MongoDB first, then start listening for requests.
 const startServer = async () => {
@@ -40,6 +64,8 @@ const startServer = async () => {
   }
 
   await connectDatabase();
+  await addDefaultServicesIfEmpty(); // first run only: adds the original five services
+  await addDefaultTrainingIfEmpty(); // first run only: adds the original training areas and programs
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
